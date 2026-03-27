@@ -1,4 +1,4 @@
-oad Kernel Modules (on all nodes)
+Load Kernel Modules (on all nodes)
 
 Run these commands on every node (master, node1, node2) to ensure required kernel modules are loaded for Flannel:
 
