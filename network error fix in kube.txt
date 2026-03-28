@@ -25,3 +25,79 @@ net.ipv4.ip_forward=1
 Then, apply the sysctl settings:
 
 sudo sysctl -p
+
+#############################################################################################################################################################################################
+
+##Ye Flannel CNI ka issue hai — ConfigMap register nahi hua properly. Pehle root cause samjhte hain, phir permanent fix karte hain.
+##Pehle Ye Check Karo:
+
+kubectl get configmap kube-flannel-cfg -n kube-flannel
+
+##Permanent Fix:
+###Step 1 — Flannel ko poora delete karo
+
+kubectl delete -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
+
+###Step 2 — CNI config saaf karo (node2 pe jao aur ye karo)
+
+sudo rm -rf /etc/cni/net.d/*
+
+sudo rm -rf /var/lib/cni/
+
+sudo systemctl restart kubelet
+
+###Step 3 — Flannel dobara apply karo
+
+kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
+
+###Step 4 — Wait karo aur check karo
+
+kubectl get pods -n kube-flannel -w
+
+##Agar Phir Bhi Problem Aaye:
+## ye check karo:
+
+
+kubectl describe node node2 | grep -i taint
+
+##Taints hain toh ye hatao:
+
+kubectl taint nodes node2 node.kubernetes.io/not-ready:NoSchedule-
+
+#############################################################################################################################################################################################
+
+##################Failed to check br_netfilter: no such file or directory#######################################
+br_netfilter kernel module load nahi hai node pe — isliye flannel baar baar crash ho raha hai.
+
+###Permanent Fix:###
+##Node2 pe jao aur ye karo:
+###Step 1 — Module abhi load karo
+
+sudo modprobe br_netfilter
+
+sudo modprobe overlay
+
+###Step 2 — Permanent karo (reboot ke baad bhi rahe)
+
+cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+br_netfilter
+overlay
+EOF
+
+###Step 3 — Sysctl settings daalo
+
+cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward                 = 1
+EOF
+
+sudo sysctl --system
+
+###Step 4 — Flannel pod restart karo
+
+kubectl delete pod -n kube-flannel $(kubectl get pods -n kube-flannel --field-selector spec.nodeName=node2 -o name)
+
+###Verify Karo:
+
+kubectl get pods -n kube-flannel -w
