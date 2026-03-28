@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: burst
+  labels:
+   app: web
+   env: dev
+spec:
+  containers:
+  - name: burst
+    image: nginx
+    resources:
+      limits:
+        memory: "200Mi"
+      requests:
+        memory: "100Mi"
