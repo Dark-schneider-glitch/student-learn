@@ -1,0 +1,31 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: web-demo-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: web-demo
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 60   # 5 min की जगह 1 min में scale down
+      policies:
+      - type: Pods
+        value: 2                        # एक बार में 2 pods घटाओ
+        periodSeconds: 30              # हर 30 seconds में
+    scaleUp:
+      stabilizationWindowSeconds: 0    # तुरंत scale up
+      policies:
+      - type: Pods
+        value: 3                        # एक बार में 3 pods बढ़ाओ
+        periodSeconds: 15              # हर 15 seconds में
