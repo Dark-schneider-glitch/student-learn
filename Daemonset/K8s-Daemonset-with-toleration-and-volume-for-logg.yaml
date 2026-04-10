@@ -1,0 +1,72 @@
+# ==========================================
+# DaemonSet for Log Collection
+# Har Node pe ek pod automatically chalega
+# ==========================================
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: log-collector          # CHANGE: Apna naam do
+  namespace: default           # CHANGE: Apna namespace
+  labels:
+    app: log-collector
+
+spec:
+  selector:
+    matchLabels:
+      app: log-collector       # metadata.labels se match hona chahiye
+
+  template:
+    metadata:
+      labels:
+        app: log-collector
+
+    spec:
+      containers:
+        - name: log-collector
+          image: fluent/fluent-bit:latest   # CHANGE: Apna log image
+
+          # ----------------------------------------
+          # CHANGE: Resources apne cluster ke hisaab se
+          # ----------------------------------------
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+
+          # ----------------------------------------
+          # Yahan host ke log folders mount ho rahe hain
+          # CHANGE: Path apne system ke hisaab se
+          # ----------------------------------------
+          volumeMounts:
+            - name: varlog
+              mountPath: /var/log          # System logs
+              readOnly: true
+
+            - name: containers-log
+              mountPath: /var/lib/docker/containers   # Container logs
+              readOnly: true
+
+      # ----------------------------------------
+      # Host ke actual folders
+      # ----------------------------------------
+      volumes:
+        - name: varlog
+          hostPath:
+            path: /var/log                 # Node ka log folder
+
+        - name: containers-log
+          hostPath:
+            path: /var/lib/docker/containers
+
+      # ----------------------------------------
+      # CHANGE: Agar specific nodes pe hi chalana ho
+      # Nahi chahiye toh yeh block hata do
+      # ----------------------------------------
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule               # Control plane pe bhi chalega

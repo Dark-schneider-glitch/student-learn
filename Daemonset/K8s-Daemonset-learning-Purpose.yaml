@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: simple-logger
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: simple-logger
+  template:
+    metadata:
+      labels:
+        app: simple-logger
+    spec:
+      containers:
+        - name: logger
+          image: busybox
+          command: ["/bin/sh", "-c", "while true; do echo LOG: $(date) on $(hostname); sleep 5; done"]
